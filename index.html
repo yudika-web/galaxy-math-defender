@@ -49,7 +49,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 0; 
+            padding: 0; /* Padding diatur di elemen anak */
             box-sizing: border-box;
             z-index: 5;
         }
@@ -61,25 +61,25 @@
             left: 0;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end; 
+            align-items: flex-end; /* Align bottom */
             width: 100%;
-            padding: 20px 10px 30px 10px; 
+            padding: 20px 10px 30px 10px; /* Padding bawah lebih besar untuk area aman HP */
             background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%);
-            z-index: 20; 
+            z-index: 20; /* Di atas elemen lain */
         }
 
         .math-problem {
-            font-size: 1.1rem; 
+            font-size: 1.3rem; /* Font diperbesar sedikit */
             color: #f1c40f;
             text-shadow: 2px 2px #000;
             background: rgba(0,0,0,0.6);
-            padding: 10px 12px;
+            padding: 10px 15px;
             border-radius: 12px;
             border: 2px solid #f1c40f;
             min-width: 120px;
             text-align: center;
             font-weight: 900;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             margin-bottom: 5px;
         }
 
@@ -90,7 +90,7 @@
             border: 1px solid #444;
         }
 
-        /* Screens Generic */
+        /* Screens */
         .screen {
             position: absolute;
             top: 0;
@@ -102,81 +102,14 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            z-index: 30; /* Paling atas */
             pointer-events: auto;
             text-align: center;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
             overflow-y: auto;
         }
 
-        /* Loading Screen - Background Baru */
-        #loading-screen {
-            z-index: 100; /* Paling atas agar menutupi semuanya */
-            background-color: #000; /* Fallback color */
-            background-image: url('https://raw.githubusercontent.com/yudika-web/database/main/Gemini_Generated_Image_b9n39jb9n39jb9n3.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        .loading-content {
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 15px;
-            border: 1px solid #3498db;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 80%;
-            max-width: 400px;
-        }
-
-        .loading-title {
-            font-size: 1.5rem;
-            color: #fff;
-            text-shadow: 0 0 10px #3498db;
-            margin-bottom: 15px;
-            letter-spacing: 2px;
-        }
-
-        .loading-bar-container {
-            width: 100%;
-            height: 20px;
-            background: #111;
-            border: 2px solid #fff;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 10px;
-            position: relative;
-        }
-
-        .loading-bar-fill {
-            width: 0%; /* Mulai dari 0 */
-            height: 100%;
-            background: linear-gradient(90deg, #2980b9, #3498db, #2ecc71);
-            transition: width 0.1s linear;
-            box-shadow: 0 0 10px #3498db;
-        }
-
-        .loading-text {
-            font-size: 0.8rem;
-            color: #ccc;
-            text-shadow: 1px 1px 0 #000;
-        }
-
-        /* Start Screen - Background Baru */
-        #start-screen {
-            z-index: 30;
-            background-image: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url('https://raw.githubusercontent.com/yudika-web/database/main/Galaxy%20Startscreen.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-
-        .hidden { 
-            opacity: 0;
-            pointer-events: none;
-            display: none !important; 
-        }
+        .hidden { display: none !important; }
 
         h1 {
             font-size: 2rem;
@@ -185,10 +118,6 @@
             text-shadow: 0 0 10px #2980b9;
             margin-bottom: 20px;
             letter-spacing: -1px;
-            background: rgba(0,0,0,0.6); 
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #3498db;
         }
 
         button {
@@ -203,7 +132,6 @@
             margin-top: 15px;
             transition: transform 0.1s;
             border-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
         button:active { transform: scale(0.95); }
@@ -217,7 +145,7 @@
         }
 
         .ship-card {
-            background: rgba(0, 0, 0, 0.8); 
+            background: rgba(255,255,255,0.05);
             border: 2px solid #555;
             padding: 10px;
             cursor: pointer;
@@ -230,16 +158,15 @@
 
         .ship-card.selected {
             border-color: #f1c40f;
-            background: rgba(241, 196, 15, 0.2);
+            background: rgba(241, 196, 15, 0.1);
             transform: scale(1.05);
-            border-width: 3px;
         }
 
         .leaderboard {
             margin-top: 20px;
             font-size: 0.8rem;
             text-align: left;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.5);
             padding: 15px;
             border-radius: 8px;
             width: 85%;
@@ -249,7 +176,7 @@
 
         .boss-bar-container {
             position: absolute;
-            top: 50px; 
+            top: 50px; /* Boss bar tetap di atas agar jelas */
             left: 50%;
             transform: translateX(-50%);
             width: 80%;
@@ -286,7 +213,7 @@
 
         .buff-indicator {
             position: absolute;
-            bottom: 120px; 
+            bottom: 120px; /* Dinaikkan agar tidak tertutup HUD bawah */
             left: 10px;
             display: flex;
             flex-direction: column;
@@ -314,7 +241,7 @@
         
         .autofire-msg {
             position: absolute;
-            bottom: 160px;
+            bottom: 160px; /* Dinaikkan */
             width: 100%;
             text-align: center;
             color: #f1c40f;
@@ -345,24 +272,15 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         
-        <!-- Loading Screen -->
-        <div id="loading-screen" class="screen">
-            <div class="loading-content">
-                <h2 class="loading-title">SYSTEM BOOT</h2>
-                <div class="loading-bar-container">
-                    <div id="loading-bar-fill" class="loading-bar-fill"></div>
-                </div>
-                <div id="loading-text" class="loading-text">Loading Assets... 0%</div>
-            </div>
-        </div>
-
         <!-- HUD -->
         <div id="game-ui" class="ui-layer hidden">
             
+            <!-- Controls Hint moved top -->
             <div class="controls-hint">
                 TAP: TEMBAK | GESER: GERAK
             </div>
 
+            <!-- Boss Info (Tetap di atas, tapi aman dari poni) -->
             <div id="boss-label" class="boss-info">WARNING: BOSS DETECTED</div>
             <div id="boss-hp-bar" class="boss-bar-container">
                 <div id="boss-hp-fill" class="boss-bar-fill"></div>
@@ -377,6 +295,7 @@
                 <div id="buff-freeze" class="buff-tag" style="color: #00ffff;">[FREEZE: OFF]</div>
             </div>
 
+            <!-- Main HUD Moved to Bottom -->
             <div class="hud-bottom">
                 <div class="text-left text-sm font-bold stats-box">
                     <div>HP: <span id="health-display" class="text-green-400">100%</span></div>
@@ -399,12 +318,12 @@
             <h1>GALAXY<br>MATH DEFENDER</h1>
             
             <div class="mb-6">
-                <label class="text-sm block mb-2 text-gray-300 font-bold bg-black bg-opacity-70 px-2 rounded">NAMA PILOT:</label>
+                <label class="text-sm block mb-2 text-gray-400">NAMA PILOT:</label>
                 <input type="text" id="player-name" placeholder="PILOT" maxlength="10" 
-                    class="bg-gray-800 border-2 border-gray-600 p-3 text-center text-white font-mono uppercase rounded text-lg w-56 font-bold bg-opacity-90">
+                    class="bg-gray-800 border-2 border-gray-600 p-3 text-center text-white font-mono uppercase rounded text-lg w-56 font-bold">
             </div>
 
-            <p class="text-sm text-yellow-400 mb-2 font-bold bg-black bg-opacity-70 px-2 rounded">PILIH PESAWAT:</p>
+            <p class="text-sm text-yellow-400 mb-2 font-bold">PILIH PESAWAT:</p>
             <div class="ship-grid">
                 <div class="ship-card selected" onclick="window.selectShip('fighter')">
                     <div class="text-sm font-bold">FIGHTER</div>
@@ -430,7 +349,7 @@
         <!-- Game Over / Win Screen -->
         <div id="game-over-screen" class="screen hidden">
             <h1 id="end-title" class="text-red-500 mb-4">MISSION FAILED</h1>
-            <div class="mb-6 bg-gray-900 p-4 rounded border border-gray-700 bg-opacity-90">
+            <div class="mb-6 bg-gray-900 p-4 rounded border border-gray-700">
                 <p class="text-lg">Score: <span id="final-score" class="text-yellow-400">0</span></p>
                 <p class="text-sm text-gray-400 mt-2">Level Dicapai: <span id="final-level">1</span></p>
             </div>
@@ -481,11 +400,11 @@
             shield: { active: false, timer: 0 },
             freeze: { active: false, timer: 0 },
             rocket: { active: false, timer: 0 },
-            drone: { active: false, timer: 0 } 
+            drone: { active: false, timer: 0 } // Drone Buff
         };
 
         // Initialize objects safely
-        let player = { x: 0, y: 0, width: 30, height: 30, color: '#3498db', speed: 5 };
+        let player = { x: 0, y: 0, width: 40, height: 40, color: '#3498db', speed: 5 };
         let bullets = [];
         let bossLasers = [];
         let enemies = [];
@@ -570,7 +489,7 @@
             const cards = document.querySelectorAll('.ship-card');
             if(type === 'fighter') cards[0]?.classList.add('selected');
             if(type === 'ufo') cards[1]?.classList.add('selected');
-            if(type === 'bomber') cards[2]?.classList.add('selected'); 
+            if(type === 'bomber') cards[2]?.classList.add('selected'); // Changed from Heli
             if(type === 'stealth') cards[3]?.classList.add('selected');
         };
 
@@ -678,6 +597,7 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             if (gameState === 'playing' && player) {
+                // Posisi pesawat agak naik agar tidak tertutup HUD bawah
                 player.y = canvas.height - 150; 
             }
             if (stars.length === 0) initStars();
@@ -711,14 +631,13 @@
                     while (value === question.ans || value <= 0);
                 }
                 
-                // Spawn Enemy with base speed
                 enemies.push({
                     x: (i * laneWidth) + (laneWidth / 2),
                     y: -60 - Math.random() * 50,
                     width: 40, height: 40,
                     value: value,
                     isCorrect: (i === correctLane),
-                    speed: gameSpeed * (0.9 + Math.random() * 0.2), // Base speed only
+                    speed: (gameSpeed * (buffs.freeze.active ? 0.5 : 1.0)) * (0.9 + Math.random()*0.2),
                     color: '#9b59b6' 
                 });
             }
@@ -872,8 +791,9 @@
                 }
                 // Drone shooting logic
                 if (gameFrame % 40 === 0) { // Slower fire rate for drone
-                    // Find nearest meteor (Exclude enemies/numbers)
+                    // Find nearest meteor
                     let target = meteors.length > 0 ? meteors[0] : null;
+                    if (!target && enemies.length > 0) target = enemies[0];
                     
                     if (target) {
                         const droneX = player.x + 30;
@@ -917,7 +837,7 @@
                     playSound('shoot');
                 }
 
-                if (boss.y < 120) { // Turunkan posisi Boss sedikit
+                if (boss.y < 80) {
                     boss.y += 1;
                 } else {
                     // Strafe
@@ -1039,14 +959,11 @@
                 if (meteors[m] && meteors[m].y > canvas.height) meteors.splice(m, 1);
             }
 
-            // Enemies (Apply Freeze dynamically)
+            // Enemies
             for (let i = enemies.length - 1; i >= 0; i--) {
                 let e = enemies[i];
                 if (!e) continue;
-                
-                // Dynamic speed application for Freeze effect
-                let moveSpeed = e.speed * (buffs.freeze.active ? 0.5 : 1.0);
-                e.y += moveSpeed;
+                e.y += e.speed;
                 
                 if (!buffs.shield.active && Math.hypot(player.x - e.x, player.y - e.y) < 30) {
                     health -= 15;
@@ -1112,7 +1029,6 @@
                         if (enemies[i].isCorrect) {
                             score += 10 + level;
                             waveProgress++;
-                            health = Math.min(100, health + 10); // HP +10% on correct answer
                             playSound('hit');
                             createExplosion(enemies[i].x, enemies[i].y, '#2ecc71');
                             if (Math.random() < 0.25) spawnPowerup(enemies[i].x, enemies[i].y);
@@ -1200,7 +1116,6 @@
             if (gameState === 'playing') {
                 // Player
                 ctx.save(); ctx.translate(player.x, player.y);
-                ctx.scale(0.8, 0.8); // Perkecil pesawat pemain 20%
                 if (buffs.shield.active) {
                     ctx.strokeStyle = '#3498db'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.stroke();
                 }
@@ -1285,40 +1200,6 @@
             } catch(e) { console.log(e); } 
         }
 
-        // --- INIT & LOADING LOGIC ---
-        function initGame() {
-            const loadingBar = document.getElementById('loading-bar-fill');
-            const loadingText = document.getElementById('loading-text');
-            const loadingScreen = document.getElementById('loading-screen');
-            
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 2; // Fixed speed loading
-                if(progress > 100) progress = 100;
-                
-                if(loadingBar) loadingBar.style.width = `${progress}%`;
-                if(loadingText) loadingText.innerText = `Initializing Systems... ${Math.floor(progress)}%`;
-                
-                if(progress === 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        loadingScreen.classList.add('hidden');
-                        initFirebase();
-                        resizeCanvas();
-                        gameLoop();
-                    }, 500);
-                }
-            }, 30);
-        }
-
-        // Jalankan Init Game segera setelah Script dimuat
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initGame);
-        } else {
-            initGame();
-        }
-
-        // Handler untuk Event Lainnya
         function handleStart() {
             initAudio(); 
             playMusic();
@@ -1333,7 +1214,7 @@
             document.getElementById('autofire-label').style.display = 'none';
 
             player.x = canvas.width / 2;
-            player.y = canvas.height - 150; 
+            player.y = canvas.height - 150; // Set initial Y position explicitly
 
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('game-over-screen').classList.add('hidden');
@@ -1344,8 +1225,12 @@
 
         function handleShoot(e) {
             if (gameState !== 'playing') return;
+            // Disable manual shoot during boss (Autofire active)
             if (boss.active) return;
+            
             if(e.type === 'touchstart') e.preventDefault();
+            
+            // Check if rocket buff active
             const isAuto = buffs.rocket.active;
             bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isAuto: isAuto });
             playSound('shoot');
@@ -1354,30 +1239,38 @@
         function handleInput(e) {
             if (gameState !== 'playing' || !player) return;
             if(e.type === 'touchmove') e.preventDefault();
+            
             const rect = canvas.getBoundingClientRect();
             let cx;
             if (e.touches && e.touches.length > 0) cx = e.touches[0].clientX;
             else if (e.clientX) cx = e.clientX;
+
             if (cx) player.x = Math.max(20, Math.min(canvas.width - 20, cx - rect.left));
         }
 
-        const startBtn = document.getElementById('start-button');
-        const restartBtn = document.getElementById('restart-button');
-        if(startBtn) startBtn.addEventListener('click', handleStart);
-        if(restartBtn) restartBtn.addEventListener('click', handleStart);
-        
-        canvas.addEventListener('mousemove', handleInput);
-        canvas.addEventListener('mousedown', handleShoot);
-        canvas.addEventListener('touchmove', handleInput, { passive: false });
-        canvas.addEventListener('touchstart', handleShoot, { passive: false });
+        window.onload = function() {
+            resizeCanvas();
+            const startBtn = document.getElementById('start-button');
+            const restartBtn = document.getElementById('restart-button');
+            if(startBtn) startBtn.addEventListener('click', handleStart);
+            if(restartBtn) restartBtn.addEventListener('click', handleStart);
+            
+            canvas.addEventListener('mousemove', handleInput);
+            canvas.addEventListener('mousedown', handleShoot);
+            canvas.addEventListener('touchmove', handleInput, { passive: false });
+            canvas.addEventListener('touchstart', handleShoot, { passive: false });
 
-        window.addEventListener('resize', resizeCanvas);
-        
-        const nameInput = document.getElementById('player-name');
-        if(nameInput) {
-            const savedName = localStorage.getItem('pilotName');
-            if(savedName) nameInput.value = savedName;
-        }
+            window.addEventListener('resize', resizeCanvas);
+            
+            const nameInput = document.getElementById('player-name');
+            if(nameInput) {
+                const savedName = localStorage.getItem('pilotName');
+                if(savedName) nameInput.value = savedName;
+            }
+            
+            initFirebase();
+            gameLoop();
+        };
     </script>
 </body>
 </html>
