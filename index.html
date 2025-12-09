@@ -38,7 +38,7 @@
 
         canvas { display: block; }
 
-        /* UI Overlay */
+        /* UI Overlay - Pointer Events None agar tembus ke canvas */
         .ui-layer {
             position: absolute;
             top: 0;
@@ -131,12 +131,22 @@
             line-height: 1.2;
             color: #3498db;
             text-shadow: 0 0 10px #2980b9;
-            margin-bottom: 20px;
+            margin-bottom: 5px; /* Reduced margin to fit version text */
             letter-spacing: -1px;
             background: rgba(0,0,0,0.6); 
             padding: 15px;
             border-radius: 10px;
             border: 1px solid #3498db;
+        }
+
+        /* Version Text Style */
+        .version-text {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 8px;
+            border-radius: 4px;
         }
 
         button {
@@ -337,6 +347,7 @@
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
             <h1>GALAXY<br>MATH DEFENDER</h1>
+            <div class="version-text">Versi 2.1</div> <!-- Added Version Here -->
             
             <div class="mb-6">
                 <label class="text-sm block mb-2 text-gray-300 font-bold bg-black bg-opacity-70 px-2 rounded">NAMA PILOT:</label>
@@ -389,6 +400,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Global Error Handler
         window.onerror = function(msg, url, line, col, error) {
             console.log("Suppressing script error:", msg);
             return true; 
@@ -407,7 +419,7 @@
         let score = 0;
         let level = 1;
         let waveProgress = 0; 
-        const WAVES_PER_LEVEL = 10; 
+        const WAVES_PER_LEVEL = 10; // Harus menjawab 10 soal benar untuk Boss
         let gameFrame = 0; 
         
         // --- INPUT STATE UNIFIED ---
@@ -536,6 +548,7 @@
             if(type === 'stealth') cards[3]?.classList.add('selected');
         };
 
+        // --- FIREBASE ---
         async function initFirebase() {
             try {
                 if (!firebaseConfig.apiKey) {
@@ -549,7 +562,10 @@
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
                 else await signInAnonymously(auth);
                 onAuthStateChanged(auth, (u) => { user = u; if (user && gameState === 'gameover') loadLeaderboard(); });
-            } catch (e) { console.log(e); }
+            } catch (e) { 
+                const el = document.getElementById('leaderboard-list');
+                if(el) el.innerHTML = "Offline Mode"; 
+            }
         }
 
         async function saveScore(s, n) {
@@ -569,28 +585,45 @@
             } catch (e) { listEl.innerHTML = "Error loading data"; }
         }
 
+        // --- AUDIO ---
         function initAudio() {
             if (!audioCtx) {
-                try { const AudioContext = window.AudioContext || window.webkitAudioContext; if (AudioContext) audioCtx = new AudioContext(); } catch(e){}
+                try { 
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) audioCtx = new AudioContext(); 
+                } catch(e){}
             }
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(e => {});
+            
             if (!bgMusic) {
                 try {
                     bgMusic = new Audio('https://cdn.jsdelivr.net/gh/yudika-web/database@main/8bit-spaceshooter.mp3');
-                    bgMusic.crossOrigin = "anonymous"; bgMusic.loop = true; bgMusic.volume = 0.5;
+                    bgMusic.crossOrigin = "anonymous"; 
+                    bgMusic.loop = true;
+                    bgMusic.volume = 0.5;
                     bgMusic.onerror = () => { console.warn("BGM failed to load"); bgMusic = null; };
-                } catch(e) {}
+                } catch(e) {
+                    console.warn("Audio creation failed", e);
+                }
             }
         }
         
-        function playMusic() { if (bgMusic) { bgMusic.currentTime = 0; bgMusic.play().catch(e => {}); } }
+        function playMusic() { 
+            if (bgMusic) { 
+                bgMusic.currentTime = 0; 
+                bgMusic.play().catch(e => { /* Ignore autoplay errors */ }); 
+            } 
+        }
         function stopMusic() { if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; } }
 
         function playSound(type) {
             if (!audioCtx) return;
             try {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                
                 if (type === 'shoot') {
                     osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
                     gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
@@ -613,14 +646,20 @@
 
         // --- GAME LOGIC ---
         function resizeCanvas() {
-            canvas = document.getElementById('gameCanvas'); if(!canvas) return;
-            ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            if (gameState === 'playing' && player) { player.y = canvas.height - 150; }
+            canvas = document.getElementById('gameCanvas');
+            if(!canvas) return;
+            ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (gameState === 'playing' && player) {
+                player.y = canvas.height - 150; 
+            }
             if (stars.length === 0) initStars();
         }
 
         function initStars() {
-            stars = []; if(!canvas) return;
+            stars = [];
+            if(!canvas) return;
             for(let i=0; i<80; i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, speed: Math.random()*2+0.5 });
         }
 
@@ -637,33 +676,57 @@
             if (boss.active || !canvas) return;
             const laneWidth = canvas.width / 3;
             const correctLane = Math.floor(Math.random() * 3);
+            
+            // Generate pool of potential wrong answers
             let wrongPool = [];
             for(let i=0; i<10; i++) {
                 let val = question.ans + (Math.floor(Math.random() * 20) - 10);
                 if(val > 0 && val !== question.ans && !wrongPool.includes(val)) wrongPool.push(val);
             }
-            if(wrongPool.length < 2) wrongPool = [question.ans+1, question.ans+2]; 
+            if(wrongPool.length < 2) wrongPool = [question.ans+1, question.ans+2]; // Fallback
 
             for (let i = 0; i < 3; i++) {
                 let value;
-                if (i === correctLane) { value = question.ans; } else { value = wrongPool.pop() || (question.ans + i + 5); }
+                if (i === correctLane) {
+                    value = question.ans;
+                } else {
+                    value = wrongPool.pop() || (question.ans + i + 5);
+                }
+                
                 enemies.push({
-                    x: (i * laneWidth) + (laneWidth / 2), y: -60 - Math.random() * 50, width: 40, height: 40,
-                    value: value, isCorrect: (i === correctLane), speed: gameSpeed * (0.9 + Math.random() * 0.2), color: '#9b59b6' 
+                    x: (i * laneWidth) + (laneWidth / 2),
+                    y: -60 - Math.random() * 50,
+                    width: 40, height: 40,
+                    value: value,
+                    isCorrect: (i === correctLane),
+                    speed: gameSpeed * (0.9 + Math.random() * 0.2), // Base speed only
+                    color: '#9b59b6' 
                 });
             }
         }
 
         function spawnMeteor() {
             if (boss.active || !canvas) return;
-            meteors.push({ x: Math.random() * canvas.width, y: -50, size: 20 + Math.random() * 30, speed: 1 + Math.random() * 2, hp: 3 });
+            meteors.push({
+                x: Math.random() * canvas.width,
+                y: -50,
+                size: 20 + Math.random() * 30,
+                speed: 1 + Math.random() * 2,
+                hp: 3
+            });
         }
 
         function spawnPowerup(x, y) {
             const types = ['shield', 'rocket', 'freeze', 'health', 'drone'];
             const type = types[Math.floor(Math.random() * types.length)];
+            
             let symbol = '?';
-            if(type === 'shield') symbol = 'SHLD'; if(type === 'rocket') symbol = 'RKT'; if(type === 'freeze') symbol = 'ICE'; if(type === 'health') symbol = 'HP+'; if(type === 'drone') symbol = 'DRN';
+            if(type === 'shield') symbol = 'SHLD';
+            if(type === 'rocket') symbol = 'RKT';
+            if(type === 'freeze') symbol = 'ICE';
+            if(type === 'health') symbol = 'HP+';
+            if(type === 'drone') symbol = 'DRN';
+
             powerups.push({ x, y, type, symbol, dy: 1.5 });
         }
         
@@ -674,10 +737,19 @@
         }
 
         function startBossFight() {
-            boss.active = true; boss.hp = 100 + (level * 30); boss.maxHp = boss.hp; boss.y = -100; boss.x = canvas.width / 2; boss.laserTimer = 0;
-            enemies = []; meteors = [];
-            boss.megaLaserTimer = 0; boss.megaLaserState = 'idle'; boss.shieldActive = false; boss.shieldTimer = 0;
-            document.getElementById('boss-hp-bar').style.display = 'block'; document.getElementById('boss-label').style.display = 'block'; document.getElementById('autofire-label').style.display = 'block'; document.getElementById('question-box').textContent = "BOSS BATTLE!";
+            boss.active = true;
+            boss.hp = 100 + (level * 30); 
+            boss.maxHp = boss.hp;
+            boss.y = -100;
+            boss.x = canvas.width / 2;
+            boss.laserTimer = 0;
+            enemies = []; 
+            meteors = [];
+            
+            document.getElementById('boss-hp-bar').style.display = 'block';
+            document.getElementById('boss-label').style.display = 'block';
+            document.getElementById('autofire-label').style.display = 'block';
+            document.getElementById('question-box').textContent = "BOSS BATTLE!";
         }
 
         function createExplosion(x, y, color) {
@@ -685,17 +757,24 @@
         }
         
         function victory() {
-            gameState = 'gameover'; stopMusic();
+            gameState = 'gameover';
+            stopMusic();
             document.getElementById('game-ui').classList.add('hidden');
             const endScreen = document.getElementById('game-over-screen');
             endScreen.classList.remove('hidden');
-            document.getElementById('end-title').innerText = "MISSION COMPLETE!"; document.getElementById('end-title').className = "text-green-500 mb-4";
-            document.getElementById('final-score').innerText = score; document.getElementById('final-level').innerText = level;
-            const nameInput = document.getElementById('player-name'); if(nameInput && nameInput.value) saveScore(score, nameInput.value);
+            
+            document.getElementById('end-title').innerText = "MISSION COMPLETE!";
+            document.getElementById('end-title').className = "text-green-500 mb-4";
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-level').innerText = level;
+            
+            const nameInput = document.getElementById('player-name');
+            if(nameInput && nameInput.value) saveScore(score, nameInput.value);
         }
 
         function update() {
             if (gameState !== 'playing' || !canvas || !player) return;
+            
             gameFrame++; 
 
             // Input Handling (Pointer)
@@ -706,7 +785,7 @@
 
             // SHOOTING LOGIC (Instant & Continuous)
             if (inputState.isDown && !boss.active) {
-                if (gameFrame % 10 === 0) { 
+                if (gameFrame % 10 === 0) { // Fire rate
                     const isAuto = buffs.rocket.active;
                     // Standard: Fire Straight if not homing
                     bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isHoming: isAuto });
