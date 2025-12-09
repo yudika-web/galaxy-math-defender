@@ -62,7 +62,7 @@
             width: 100%;
             height: 100%;
             background-color: white;
-            z-index: 50; /* Di atas segalanya kecuali loading */
+            z-index: 50; 
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s ease-in-out;
@@ -152,7 +152,7 @@
             border-radius: 10px;
             border: 1px solid #3498db;
         }
-
+        
         .version-text {
             font-size: 0.8rem;
             color: #aaa;
@@ -363,7 +363,7 @@
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
             <h1>GALAXY<br>MATH DEFENDER</h1>
-            <div class="version-text">Versi 2.3</div>
+            <div class="version-text">Versi 2.4</div>
             
             <div class="mb-6">
                 <label class="text-sm block mb-2 text-gray-300 font-bold bg-black bg-opacity-70 px-2 rounded">NAMA PILOT:</label>
@@ -374,20 +374,20 @@
             <p class="text-sm text-yellow-400 mb-2 font-bold bg-black bg-opacity-70 px-2 rounded">PILIH PESAWAT:</p>
             <div class="ship-grid">
                 <div class="ship-card selected" onclick="window.selectShip('fighter')">
-                    <div class="text-sm font-bold">FIGHTER</div>
-                    <div style="font-size: 10px; color:#ccc;">Seimbang</div>
+                    <div class="text-sm font-bold" style="color:#e74c3c;">FIGHTER</div>
+                    <div style="font-size: 10px; color:#ccc;">Balanced</div>
                 </div>
                 <div class="ship-card" onclick="window.selectShip('ufo')">
-                    <div class="text-sm font-bold">UFO</div>
-                    <div style="font-size: 10px; color:#ccc;">Kecil</div>
+                    <div class="text-sm font-bold" style="color:#2ecc71;">UFO</div>
+                    <div style="font-size: 10px; color:#ccc;">Small Hitbox</div>
                 </div>
                 <div class="ship-card" onclick="window.selectShip('bomber')">
-                    <div class="text-sm font-bold">BOMBER</div>
-                    <div style="font-size: 10px; color:#ccc;">Kuat</div>
+                    <div class="text-sm font-bold" style="color:#3498db;">BOMBER</div>
+                    <div style="font-size: 10px; color:#ccc;">Tanky</div>
                 </div>
                 <div class="ship-card" onclick="window.selectShip('stealth')">
-                    <div class="text-sm font-bold">STEALTH</div>
-                    <div style="font-size: 10px; color:#ccc;">Cepat</div>
+                    <div class="text-sm font-bold" style="color:#9b59b6;">STEALTH</div>
+                    <div style="font-size: 10px; color:#ccc;">Fast</div>
                 </div>
             </div>
 
@@ -463,6 +463,14 @@
         let meteors = [];
         let powerups = [];
         
+        // Warna Peluru per Tipe Pesawat
+        const shipBulletColors = {
+            fighter: '#e74c3c', // Merah
+            ufo: '#2ecc71',     // Hijau
+            bomber: '#3498db',  // Biru
+            stealth: '#9b59b6'  // Ungu
+        };
+        
         let boss = { 
             active: false, 
             x: 0, 
@@ -518,18 +526,32 @@
              if (isClone) ctx.globalAlpha = 0.6; // Clones are transparent
 
              // Boss Visuals based on level
-             if (visualLvl === 0) { ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(0, 40); ctx.lineTo(60, -20); ctx.lineTo(20, -40); ctx.lineTo(-20, -40); ctx.lineTo(-60, -20); ctx.fill(); } 
-             else if (visualLvl === 1) { ctx.fillStyle = '#8e44ad'; ctx.fillRect(-50, -30, 30, 60); ctx.fillRect(20, -30, 30, 60); ctx.fillRect(-20, -10, 40, 20); }
-             else if (visualLvl === 6) { 
-                 ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.arc(0,0,40,0,Math.PI*2); ctx.fill(); 
+             if (visualLvl === 0) { // Lvl 1: Classic Red
+                 ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(0, 40); ctx.lineTo(60, -20); ctx.lineTo(20, -40); ctx.lineTo(-20, -40); ctx.lineTo(-60, -20); ctx.fill();
+             } else if (visualLvl === 1) { // Lvl 2: Twin Hull Purple
+                 ctx.fillStyle = '#8e44ad'; ctx.fillRect(-50, -30, 30, 60); ctx.fillRect(20, -30, 30, 60); ctx.fillRect(-20, -10, 40, 20);
+             } else if (visualLvl === 2) { // Lvl 3: Green Saucer
+                 ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.ellipse(0, 0, 60, 30, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#f1c40f'; ctx.beginPath(); ctx.arc(0, -10, 20, 0, Math.PI*2); ctx.fill();
+             } else if (visualLvl === 3) { // Lvl 4: Orange Triangle
+                 ctx.fillStyle = '#d35400'; ctx.beginPath(); ctx.moveTo(0, 50); ctx.lineTo(50, -40); ctx.lineTo(-50, -40); ctx.fill();
+             } else if (visualLvl === 4) { // Lvl 5: Grey Destroyer
+                 ctx.fillStyle = '#7f8c8d'; ctx.fillRect(-60, -20, 120, 40); ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fill();
+             } else if (visualLvl === 5) { // Lvl 6: Spider Dark
+                 ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.fill(); 
+                 ctx.strokeStyle='#e74c3c'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-50, 40); ctx.moveTo(0,0); ctx.lineTo(50, 40); ctx.moveTo(0,0); ctx.lineTo(-50, -40); ctx.moveTo(0,0); ctx.lineTo(50, -40); ctx.stroke();
+             } else if (visualLvl === 6) { // Lvl 7: Orb Purple
+                 ctx.fillStyle = '#9b59b6'; ctx.beginPath(); ctx.arc(0,0,40,0,Math.PI*2); ctx.fill(); 
                  ctx.strokeStyle='#f39c12'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,50,0,Math.PI*2); ctx.stroke();
+             } else if (visualLvl === 7) { // Lvl 8: Hammerhead Teal
+                 ctx.fillStyle = '#16a085'; ctx.fillRect(-60, -20, 120, 30); ctx.fillRect(-20, 10, 40, 40);
+             } else if (visualLvl === 8) { // Lvl 9: Mothership Blue
+                 ctx.fillStyle = '#2980b9'; ctx.beginPath(); ctx.moveTo(0, 60); ctx.lineTo(80, -20); ctx.lineTo(-80, -20); ctx.fill();
+                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
+             } else if (visualLvl === 9) { // Lvl 10: Final Core Black
+                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI*2); ctx.fill();
+                 ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 4; ctx.stroke();
+                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
              }
-             else if (visualLvl === 8) { // Level 9 (Flash Master)
-                 ctx.fillStyle = '#f1c40f'; // Bright Yellow
-                 ctx.beginPath(); ctx.moveTo(0, -40); ctx.lineTo(40, 0); ctx.lineTo(0, 40); ctx.lineTo(-40, 0); ctx.fill();
-                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
-             }
-             else { ctx.fillStyle = '#c0392b'; ctx.fillRect(-40, -40, 80, 80); ctx.fillStyle = '#f1c40f'; ctx.fillRect(-20, -20, 40, 40); }
              
              ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-20, -10, 5, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(20, -10, 5, 0, Math.PI*2); ctx.fill();
              ctx.restore();
@@ -980,34 +1002,47 @@
                 ctx.fillStyle = '#7f8c8d'; meteors.forEach(m => { ctx.save(); ctx.translate(m.x, m.y); ctx.beginPath(); for(let i=0; i<6; i++) { const angle = (i/6)*Math.PI*2; const r = m.size * (0.8 + Math.random()*0.4); ctx.lineTo(Math.cos(angle)*r, Math.sin(angle)*r); } ctx.fill(); ctx.restore(); });
                 enemies.forEach(e => { ctx.save(); ctx.translate(e.x, e.y); ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-8, -5, 4, 0, Math.PI*2); ctx.arc(8, -5, 4, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '14px "Courier New"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(e.value), 0, 10); ctx.restore(); });
                 powerups.forEach(p => { ctx.font = 'bold 12px "Courier New"'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.symbol, p.x, p.y); ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI*2); ctx.stroke(); });
-                bullets.forEach(b => { if (b.isDrone) ctx.fillStyle = '#2ecc71'; else if (b.isHoming) ctx.fillStyle = '#e67e22'; else ctx.fillStyle = '#f1c40f'; ctx.fillRect(b.x-2, b.y-10, 4, 10); });
+                bullets.forEach(b => { 
+                    if (b.isDrone) ctx.fillStyle = '#2ecc71'; 
+                    else if (b.isHoming) ctx.fillStyle = '#e67e22'; 
+                    else ctx.fillStyle = shipBulletColors[selectedShipType] || '#f1c40f'; // Warna Peluru
+                    ctx.fillRect(b.x-2, b.y-10, 4, 10); 
+                });
                 particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4); }); ctx.globalAlpha = 1;
             }
         }
 
         function gameLoop() { animationFrameId = requestAnimationFrame(gameLoop); try { update(); draw(); } catch(e) { console.log(e); } }
         
+        // --- WINDOW.ONLOAD: TEMPAT AMAN UNTUK INIT ---
         window.onload = function() {
+            // 1. Setup Canvas
             canvas = document.getElementById('gameCanvas');
             ctx = canvas.getContext('2d');
             resizeCanvas();
 
+            // 2. Setup Event Listeners untuk Input
             canvas.addEventListener('mousedown', handlePointerDown);
             canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+            
             window.addEventListener('mouseup', handlePointerUp);
             window.addEventListener('touchend', handlePointerUp);
             window.addEventListener('mousemove', handlePointerMove);
             window.addEventListener('touchmove', handlePointerMove, { passive: false });
             window.addEventListener('resize', resizeCanvas);
 
+            // 3. Setup Tombol
             const startBtn = document.getElementById('start-button');
             const restartBtn = document.getElementById('restart-button');
             if(startBtn) startBtn.addEventListener('click', handleStart);
             if(restartBtn) restartBtn.addEventListener('click', handleStart);
 
+            // 4. Setup Nama & Firebase
             const nameInput = document.getElementById('player-name');
             if(nameInput) { const savedName = localStorage.getItem('pilotName'); if(savedName) nameInput.value = savedName; }
             initFirebase();
+            
+            // 5. Start Game Loop Immediately
             gameLoop();
         };
 
@@ -1036,11 +1071,14 @@
             gameState = 'playing'; generateQuestion();
         }
 
+        // --- NEW INPUT SYSTEM ---
         function handlePointerDown(e) {
             if (gameState !== 'playing') return;
             if(e.type === 'touchstart') e.preventDefault();
             inputState.isDown = true;
             updatePointerPos(e);
+            
+            // FIRE INSTANTLY ON TAP
             if(!boss.active) {
                 const isHoming = buffs.rocket.active;
                 bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isHoming: isHoming });
