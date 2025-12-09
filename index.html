@@ -38,7 +38,7 @@
 
         canvas { display: block; }
 
-        /* UI Overlay - Pointer Events None agar tembus ke canvas */
+        /* UI Overlay */
         .ui-layer {
             position: absolute;
             top: 0;
@@ -105,7 +105,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            pointer-events: auto; /* Screen harus bisa diklik */
+            pointer-events: auto;
             text-align: center;
             transition: opacity 0.5s;
             overflow-y: auto;
@@ -303,7 +303,7 @@
                 TAHAN UNTUK MENEMBAK | GESER: GERAK
             </div>
 
-            <div id="boss-label" class="boss-info">WARNING: BOSS DETECTED</div>
+            <div id="boss-label" class="boss-info">WARNING: MEGA BOSS DETECTED</div>
             <div id="boss-hp-bar" class="boss-bar-container">
                 <div id="boss-hp-fill" class="boss-bar-fill"></div>
             </div>
@@ -389,7 +389,6 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global Error Handler
         window.onerror = function(msg, url, line, col, error) {
             console.log("Suppressing script error:", msg);
             return true; 
@@ -410,12 +409,8 @@
         let waveProgress = 0; 
         const WAVES_PER_LEVEL = 10; 
         let gameFrame = 0; 
+        let inputState = { x: null, isDown: false };
         
-        // --- INPUT STATE (Penting untuk continuous fire) ---
-        let isShooting = false;
-        let pointerX = null;
-        // --------------------------------------------------
-
         let health = 100;
         let gameSpeed = 2;
         let question = { a: 1, b: 1, ans: 1 };
@@ -447,27 +442,26 @@
             hp: 100, 
             maxHp: 100, 
             dir: 1,
-            laserTimer: 0
+            laserTimer: 0,
+            megaLaserTimer: 0,
+            megaLaserState: 'idle', // idle, warning, firing
+            megaLaserDuration: 0
         };
 
         // --- DRAWING FUNCTIONS ---
         const shipDesigns = {
             fighter: (ctx, x, y) => {
-                ctx.fillStyle = '#3498db';
-                ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(20, 20); ctx.lineTo(0, 10); ctx.lineTo(-20, 20); ctx.fill();
+                ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(20, 20); ctx.lineTo(0, 10); ctx.lineTo(-20, 20); ctx.fill();
                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(-5, 10); ctx.lineTo(5, 10); ctx.lineTo(0, 30 + Math.random()*10); ctx.fill();
             },
             ufo: (ctx, x, y) => {
-                ctx.fillStyle = '#2ecc71';
-                ctx.beginPath(); if (ctx.ellipse) ctx.ellipse(0, 5, 20, 8, 0, 0, Math.PI*2); else ctx.arc(0, 5, 20, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#2ecc71'; ctx.beginPath(); if (ctx.ellipse) ctx.ellipse(0, 5, 20, 8, 0, 0, Math.PI*2); else ctx.arc(0, 5, 20, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = '#81ecec'; ctx.beginPath(); ctx.arc(0, -2, 10, Math.PI, 0); ctx.fill();
                 ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.moveTo(-3, 10); ctx.lineTo(3, 10); ctx.lineTo(0, 25 + Math.random()*5); ctx.fill();
             },
             bomber: (ctx, x, y) => {
-                ctx.fillStyle = '#5dade2'; 
-                ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(45, 20); ctx.lineTo(45, 30); ctx.lineTo(10, 20); ctx.lineTo(0, 35); ctx.lineTo(-10, 20); ctx.lineTo(-45, 30); ctx.lineTo(-45, 20); ctx.lineTo(0, -10); ctx.fill();
-                ctx.fillStyle = '#2874a6'; ctx.fillRect(-8, -25, 16, 50);
-                ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(5, -15); ctx.lineTo(-5, -15); ctx.fill();
+                ctx.fillStyle = '#5dade2'; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(45, 20); ctx.lineTo(45, 30); ctx.lineTo(10, 20); ctx.lineTo(0, 35); ctx.lineTo(-10, 20); ctx.lineTo(-45, 30); ctx.lineTo(-45, 20); ctx.lineTo(0, -10); ctx.fill();
+                ctx.fillStyle = '#2874a6'; ctx.fillRect(-8, -25, 16, 50); ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(5, -15); ctx.lineTo(-5, -15); ctx.fill();
                 ctx.fillStyle = '#e74c3c'; ctx.fillRect(-6, 25, 4, 10 + Math.random()*5); ctx.fillRect(2, 25, 4, 10 + Math.random()*5);
             },
             stealth: (ctx, x, y) => {
@@ -482,9 +476,33 @@
             ctx.save();
             ctx.translate(boss.x, boss.y);
             
-            if (visualLvl === 0) { ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(0, 40); ctx.lineTo(60, -20); ctx.lineTo(20, -40); ctx.lineTo(-20, -40); ctx.lineTo(-60, -20); ctx.fill(); } 
-            else if (visualLvl === 1) { ctx.fillStyle = '#8e44ad'; ctx.fillRect(-50, -30, 30, 60); ctx.fillRect(20, -30, 30, 60); ctx.fillRect(-20, -10, 40, 20); }
-            else { ctx.fillStyle = '#c0392b'; ctx.fillRect(-40, -40, 80, 80); ctx.fillStyle = '#f1c40f'; ctx.fillRect(-20, -20, 40, 40); }
+            // 10 UNIQUE BOSS DESIGNS
+            if (visualLvl === 0) { // Lvl 1: Classic
+                 ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(0, 40); ctx.lineTo(60, -20); ctx.lineTo(20, -40); ctx.lineTo(-20, -40); ctx.lineTo(-60, -20); ctx.fill();
+            } else if (visualLvl === 1) { // Lvl 2: Twin Hull
+                 ctx.fillStyle = '#8e44ad'; ctx.fillRect(-50, -30, 30, 60); ctx.fillRect(20, -30, 30, 60); ctx.fillRect(-20, -10, 40, 20);
+            } else if (visualLvl === 2) { // Lvl 3: Saucer
+                 ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.ellipse(0, 0, 60, 30, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#f1c40f'; ctx.beginPath(); ctx.arc(0, -10, 20, 0, Math.PI*2); ctx.fill();
+            } else if (visualLvl === 3) { // Lvl 4: Triangle
+                 ctx.fillStyle = '#d35400'; ctx.beginPath(); ctx.moveTo(0, 50); ctx.lineTo(50, -40); ctx.lineTo(-50, -40); ctx.fill();
+            } else if (visualLvl === 4) { // Lvl 5: Destroyer
+                 ctx.fillStyle = '#7f8c8d'; ctx.fillRect(-60, -20, 120, 40); ctx.fillStyle='#c0392b'; ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fill();
+            } else if (visualLvl === 5) { // Lvl 6: Spider
+                 ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.fill(); 
+                 ctx.strokeStyle='#e74c3c'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-50, 40); ctx.moveTo(0,0); ctx.lineTo(50, 40); ctx.moveTo(0,0); ctx.lineTo(-50, -40); ctx.moveTo(0,0); ctx.lineTo(50, -40); ctx.stroke();
+            } else if (visualLvl === 6) { // Lvl 7: Orb
+                 ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.arc(0,0,40,0,Math.PI*2); ctx.fill(); 
+                 ctx.strokeStyle='#f39c12'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,50,0,Math.PI*2); ctx.stroke();
+            } else if (visualLvl === 7) { // Lvl 8: Hammerhead
+                 ctx.fillStyle = '#16a085'; ctx.fillRect(-60, -20, 120, 30); ctx.fillRect(-20, 10, 40, 40);
+            } else if (visualLvl === 8) { // Lvl 9: Mothership
+                 ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.moveTo(0, 60); ctx.lineTo(80, -20); ctx.lineTo(-80, -20); ctx.fill();
+                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
+            } else if (visualLvl === 9) { // Lvl 10: Final Core
+                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI*2); ctx.fill();
+                 ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 4; ctx.stroke();
+                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill();
+            }
             
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-20, -10, 5, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(20, -10, 5, 0, Math.PI*2); ctx.fill();
             ctx.restore();
@@ -500,7 +518,6 @@
             if(type === 'stealth') cards[3]?.classList.add('selected');
         };
 
-        // --- FIREBASE ---
         async function initFirebase() {
             try {
                 if (!firebaseConfig.apiKey) {
@@ -534,22 +551,15 @@
             } catch (e) { listEl.innerHTML = "Error loading data"; }
         }
 
-        // --- AUDIO ---
         function initAudio() {
             if (!audioCtx) {
-                try { 
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) audioCtx = new AudioContext(); 
-                } catch(e){}
+                try { const AudioContext = window.AudioContext || window.webkitAudioContext; if (AudioContext) audioCtx = new AudioContext(); } catch(e){}
             }
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(e => {});
-            
             if (!bgMusic) {
                 try {
                     bgMusic = new Audio('https://cdn.jsdelivr.net/gh/yudika-web/database@main/8bit-spaceshooter.mp3');
-                    bgMusic.crossOrigin = "anonymous"; 
-                    bgMusic.loop = true;
-                    bgMusic.volume = 0.5;
+                    bgMusic.crossOrigin = "anonymous"; bgMusic.loop = true; bgMusic.volume = 0.5;
                     bgMusic.onerror = () => { console.warn("BGM failed to load"); bgMusic = null; };
                 } catch(e) {}
             }
@@ -561,36 +571,37 @@
         function playSound(type) {
             if (!audioCtx) return;
             try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
                 if (type === 'shoot') {
                     osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
                     gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
                     osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'laser') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(400, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
                 } else if (type === 'hit') {
                     osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.1);
                     gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
                     osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'powerup') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
                 }
             } catch (e) { }
         }
 
-        // --- GAME LOGIC ---
         function resizeCanvas() {
-            canvas = document.getElementById('gameCanvas');
-            if(!canvas) return;
-            ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas = document.getElementById('gameCanvas'); if(!canvas) return;
+            ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             if (gameState === 'playing' && player) { player.y = canvas.height - 150; }
             if (stars.length === 0) initStars();
         }
 
         function initStars() {
-            stars = [];
-            if(!canvas) return;
+            stars = []; if(!canvas) return;
             for(let i=0; i<80; i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, speed: Math.random()*2+0.5 });
         }
 
@@ -607,8 +618,6 @@
             if (boss.active || !canvas) return;
             const laneWidth = canvas.width / 3;
             const correctLane = Math.floor(Math.random() * 3);
-            
-            // Generate pool of potential wrong answers
             let wrongPool = [];
             for(let i=0; i<10; i++) {
                 let val = question.ans + (Math.floor(Math.random() * 20) - 10);
@@ -618,20 +627,10 @@
 
             for (let i = 0; i < 3; i++) {
                 let value;
-                if (i === correctLane) {
-                    value = question.ans;
-                } else {
-                    value = wrongPool.pop() || (question.ans + i + 5);
-                }
-                
+                if (i === correctLane) { value = question.ans; } else { value = wrongPool.pop() || (question.ans + i + 5); }
                 enemies.push({
-                    x: (i * laneWidth) + (laneWidth / 2),
-                    y: -60 - Math.random() * 50,
-                    width: 40, height: 40,
-                    value: value,
-                    isCorrect: (i === correctLane),
-                    speed: gameSpeed * (0.9 + Math.random() * 0.2),
-                    color: '#9b59b6' 
+                    x: (i * laneWidth) + (laneWidth / 2), y: -60 - Math.random() * 50, width: 40, height: 40,
+                    value: value, isCorrect: (i === correctLane), speed: gameSpeed * (0.9 + Math.random() * 0.2), color: '#9b59b6' 
                 });
             }
         }
@@ -658,6 +657,7 @@
         function startBossFight() {
             boss.active = true; boss.hp = 100 + (level * 30); boss.maxHp = boss.hp; boss.y = -100; boss.x = canvas.width / 2; boss.laserTimer = 0;
             enemies = []; meteors = [];
+            boss.megaLaserTimer = 0; boss.megaLaserState = 'idle'; // Reset Laser State
             document.getElementById('boss-hp-bar').style.display = 'block'; document.getElementById('boss-label').style.display = 'block'; document.getElementById('autofire-label').style.display = 'block'; document.getElementById('question-box').textContent = "BOSS BATTLE!";
         }
 
@@ -679,15 +679,14 @@
             if (gameState !== 'playing' || !canvas || !player) return;
             gameFrame++; 
 
-            // Input Handling (Pointer)
-            if (pointerX !== null) {
+            // Input Handling
+            if (inputState.x !== null) {
                  const rect = canvas.getBoundingClientRect();
-                 player.x = Math.max(20, Math.min(canvas.width - 20, pointerX - rect.left));
+                 player.x = Math.max(20, Math.min(canvas.width - 20, inputState.x - rect.left));
             }
 
-            // SHOOTING LOGIC (Held Down)
-            // Fire every 10 frames if holding down
-            if (isShooting && !boss.active) {
+            // SHOOTING LOGIC (Instant & Continuous)
+            if (inputState.isDown && !boss.active) {
                 if (gameFrame % 10 === 0) { 
                     const isAuto = buffs.rocket.active;
                     bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isAuto: isAuto });
@@ -695,7 +694,7 @@
                 }
             }
 
-            // ... (Buff timers logic) ...
+            // Buffs logic
             if (buffs.shield.active) { buffs.shield.timer--; if (buffs.shield.timer <= 0) { buffs.shield.active = false; document.getElementById('buff-shield').classList.remove('buff-active'); document.getElementById('buff-shield').textContent = "[SHIELD: OFF]"; } else { document.getElementById('buff-shield').classList.add('buff-active'); document.getElementById('buff-shield').textContent = "[SHIELD: ON]"; } }
             if (buffs.freeze.active) { buffs.freeze.timer--; if (buffs.freeze.timer <= 0) { buffs.freeze.active = false; document.getElementById('buff-freeze').classList.remove('buff-active'); document.getElementById('buff-freeze').textContent = "[FREEZE: OFF]"; } else { document.getElementById('buff-freeze').classList.add('buff-active'); document.getElementById('buff-freeze').textContent = "[FREEZE: ON]"; } }
             if (buffs.rocket.active) { buffs.rocket.timer--; if (buffs.rocket.timer <= 0) { buffs.rocket.active = false; document.getElementById('buff-rocket').classList.remove('buff-active'); document.getElementById('buff-rocket').textContent = "[ROCKET: OFF]"; } else { document.getElementById('buff-rocket').classList.add('buff-active'); document.getElementById('buff-rocket').textContent = "[ROCKET: ON]"; } }
@@ -713,13 +712,43 @@
 
             // BOSS Logic
             if (boss.active) {
-                // Autofire always active during Boss (Override manual)
+                // Autofire always active during Boss
                 if (gameFrame % 15 === 0) { bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isAuto: true }); playSound('shoot'); }
                 if (boss.y < 120) { boss.y += 1; } else {
                     boss.x += 2 * boss.dir; if (boss.x > canvas.width - 60 || boss.x < 60) boss.dir *= -1;
-                    if (Math.random() < 0.02) { 
-                        bossLasers.push({ x: boss.x + (Math.random() * 40 - 20), y: boss.y + 40, width: 6, height: 20, speed: 6 + (level * 0.5) });
+                    
+                    // MEGA LASER LOGIC
+                    if (boss.megaLaserState === 'idle' && Math.random() < 0.005) {
+                        boss.megaLaserState = 'warning';
+                        boss.megaLaserTimer = 60; // 1s warning
                     }
+                    if (boss.megaLaserState === 'warning') {
+                        boss.megaLaserTimer--;
+                        if (boss.megaLaserTimer <= 0) {
+                            boss.megaLaserState = 'firing';
+                            boss.megaLaserTimer = 40; // Fire duration
+                        }
+                    } else if (boss.megaLaserState === 'firing') {
+                        boss.megaLaserTimer--;
+                        // Mega Laser Collision (Wide Beam)
+                        if (player.x > boss.x - 40 && player.x < boss.x + 40) {
+                             if (!buffs.shield.active) {
+                                 health -= 2; // Rapid damage
+                                 createExplosion(player.x, player.y, '#e74c3c');
+                                 checkGameOver();
+                             }
+                        }
+                        if (boss.megaLaserTimer <= 0) {
+                            boss.megaLaserState = 'idle';
+                        }
+                    } else {
+                        // Normal small lasers if not mega-lasering
+                         if (Math.random() < 0.02) { 
+                            playSound('laser');
+                            bossLasers.push({ x: boss.x + (Math.random() * 40 - 20), y: boss.y + 40, width: 6, height: 20, speed: 6 + (level * 0.5) });
+                        }
+                    }
+                    
                     if (Math.random() < 0.005) spawnSupplyDrop();
                 }
                 if (!buffs.shield.active && Math.abs(boss.x - player.x) < boss.width/2 + 20 && Math.abs(boss.y - player.y) < boss.height/2 + 20) { health -= 5; }
@@ -755,12 +784,18 @@
                 let e = enemies[i];
                 let moveSpeed = e.speed * (buffs.freeze.active ? 0.5 : 1.0); e.y += moveSpeed;
                 if (!buffs.shield.active && Math.hypot(player.x - e.x, player.y - e.y) < 30) { health -= 15; createExplosion(e.x, e.y, '#e74c3c'); enemies.splice(i, 1); checkGameOver(); continue; }
-                if (e.y > canvas.height + 40) { if (e.isCorrect) { health -= 10; checkGameOver(); enemies=[]; break; } enemies.splice(i, 1); }
+                if (e.y > canvas.height + 40) { 
+                    if (e.isCorrect) { health -= 10; checkGameOver(); enemies=[]; break; } 
+                    enemies.splice(i, 1); 
+                }
             }
             if (boss.active) {
                 for (let b = bullets.length - 1; b >= 0; b--) {
                     if (Math.abs(bullets[b].x - boss.x) < boss.width/2 && Math.abs(bullets[b].y - boss.y) < boss.height/2) {
-                        boss.hp -= 2; bullets.splice(b, 1); createExplosion(bullets[b].x, bullets[b].y, '#e74c3c');
+                        boss.hp -= 2; 
+                        // PARTICLES EXACTLY AT BULLET IMPACT ON BOSS
+                        createExplosion(bullets[b].x, bullets[b].y, '#e74c3c'); 
+                        bullets.splice(b, 1);
                         if (boss.hp <= 0) { boss.active = false; score += 1000; health = 100; document.getElementById('boss-hp-bar').style.display = 'none'; document.getElementById('boss-label').style.display = 'none'; document.getElementById('autofire-label').style.display = 'none'; bossLasers = []; level++; if (level > 10) { victory(); return; } generateQuestion(); }
                         break;
                     }
@@ -812,10 +847,25 @@
                 if (shipDesigns[selectedShipType]) shipDesigns[selectedShipType](ctx, 0, 0); else shipDesigns['fighter'](ctx, 0, 0);
                 ctx.restore();
                 if (buffs.drone.active) { ctx.save(); ctx.translate(player.x + 30, player.y - 10); ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(-10, -2, 20, 4); ctx.fillRect(-2, -10, 4, 20); ctx.restore(); }
-                if (boss.active) drawBoss(ctx, level);
+                
+                // Draw Boss & Mega Laser
+                if (boss.active) {
+                    drawBoss(ctx, level);
+                    // Mega Laser Drawing
+                    if (boss.megaLaserState === 'warning') {
+                        ctx.fillStyle = 'rgba(231, 76, 60, 0.3)';
+                        ctx.fillRect(boss.x - 5, boss.y + 40, 10, canvas.height);
+                    } else if (boss.megaLaserState === 'firing') {
+                        ctx.fillStyle = '#e74c3c';
+                        ctx.fillRect(boss.x - 40, boss.y + 40, 80, canvas.height);
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(boss.x - 20, boss.y + 40, 40, canvas.height);
+                    }
+                }
+                
                 ctx.fillStyle = '#e74c3c'; bossLasers.forEach(l => ctx.fillRect(l.x - l.width/2, l.y, l.width, l.height));
                 ctx.fillStyle = '#7f8c8d'; meteors.forEach(m => { ctx.save(); ctx.translate(m.x, m.y); ctx.beginPath(); for(let i=0; i<6; i++) { const angle = (i/6)*Math.PI*2; const r = m.size * (0.8 + Math.random()*0.4); ctx.lineTo(Math.cos(angle)*r, Math.sin(angle)*r); } ctx.fill(); ctx.restore(); });
-                enemies.forEach(e => { ctx.save(); ctx.translate(e.x, e.y); ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '14px "Courier New"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(e.value), 0, 10); ctx.restore(); });
+                enemies.forEach(e => { ctx.save(); ctx.translate(e.x, e.y); ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-8, -5, 4, 0, Math.PI*2); ctx.arc(8, -5, 4, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '14px "Courier New"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(e.value), 0, 10); ctx.restore(); });
                 powerups.forEach(p => { ctx.font = 'bold 12px "Courier New"'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.symbol, p.x, p.y); ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 18, 0, Math.PI*2); ctx.stroke(); });
                 bullets.forEach(b => { if (b.isDrone) ctx.fillStyle = '#2ecc71'; else if (b.isAuto) ctx.fillStyle = '#e67e22'; else ctx.fillStyle = '#f1c40f'; ctx.fillRect(b.x-2, b.y-10, 4, 10); });
                 particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 4, 4); }); ctx.globalAlpha = 1;
@@ -832,42 +882,13 @@
             resizeCanvas();
 
             // 2. Setup Event Listeners untuk Input
-            canvas.addEventListener('mousedown', (e) => { 
-                if (gameState !== 'playing') return;
-                isShooting = true; 
-                updatePointerPos(e);
-                // Instant shot
-                if(!boss.active) {
-                    const isAuto = buffs.rocket.active;
-                    bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isAuto: isAuto });
-                    playSound('shoot');
-                }
-            });
-            canvas.addEventListener('touchstart', (e) => {
-                if (gameState !== 'playing') return;
-                e.preventDefault();
-                isShooting = true;
-                updatePointerPos(e);
-                if(!boss.active) {
-                    const isAuto = buffs.rocket.active;
-                    bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isAuto: isAuto });
-                    playSound('shoot');
-                }
-            }, { passive: false });
+            canvas.addEventListener('mousedown', handlePointerDown);
+            canvas.addEventListener('touchstart', handlePointerDown, { passive: false });
             
-            window.addEventListener('mouseup', () => isShooting = false);
-            window.addEventListener('touchend', () => isShooting = false);
-            
-            window.addEventListener('mousemove', (e) => {
-                if (gameState !== 'playing') return;
-                updatePointerPos(e);
-            });
-            window.addEventListener('touchmove', (e) => {
-                if (gameState !== 'playing') return;
-                e.preventDefault();
-                updatePointerPos(e);
-            }, { passive: false });
-
+            window.addEventListener('mouseup', handlePointerUp);
+            window.addEventListener('touchend', handlePointerUp);
+            window.addEventListener('mousemove', handlePointerMove);
+            window.addEventListener('touchmove', handlePointerMove, { passive: false });
             window.addEventListener('resize', resizeCanvas);
 
             // 3. Setup Tombol
@@ -891,7 +912,7 @@
             let cx;
             if (e.touches && e.touches.length > 0) cx = e.touches[0].clientX; 
             else if (e.clientX !== undefined) cx = e.clientX;
-            if (cx !== undefined) pointerX = cx;
+            if (cx !== undefined) inputState.x = cx;
         }
 
         function handleStart() {
@@ -899,11 +920,32 @@
             score = 0; level = 1; health = 100; gameSpeed = 2; waveProgress = 0; gameFrame = 0;
             bullets = []; enemies = []; particles = []; meteors = []; powerups = []; bossLasers = [];
             buffs = { shield: { active: false, timer: 0 }, freeze: { active: false, timer: 0 }, rocket: { active: false, timer: 0 }, drone: { active: false, timer: 0 } };
-            boss.active = false; isShooting = false; pointerX = null;
+            boss.active = false; inputState = { x: null, isDown: false };
             document.getElementById('boss-hp-bar').style.display = 'none'; document.getElementById('boss-label').style.display = 'none'; document.getElementById('autofire-label').style.display = 'none';
             player.x = canvas.width / 2; player.y = canvas.height - 150; 
             document.getElementById('start-screen').classList.add('hidden'); document.getElementById('game-over-screen').classList.add('hidden'); document.getElementById('game-ui').classList.remove('hidden');
             gameState = 'playing'; generateQuestion();
+        }
+
+        // --- NEW INPUT SYSTEM ---
+        function handlePointerDown(e) {
+            if (gameState !== 'playing') return;
+            if(e.type === 'touchstart') e.preventDefault();
+            inputState.isDown = true;
+            updatePointerPos(e);
+            
+            // FIRE INSTANTLY ON TAP
+            if(!boss.active) {
+                const isAuto = buffs.rocket.active;
+                bullets.push({ x: player.x, y: player.y - 20, vx: 0, vy: -12, isAuto: isAuto });
+                playSound('shoot');
+            }
+        }
+        function handlePointerUp(e) { inputState.isDown = false; }
+        function handlePointerMove(e) {
+            if (gameState !== 'playing') return;
+            if(e.type === 'touchmove') e.preventDefault();
+            updatePointerPos(e);
         }
     </script>
 </body>
